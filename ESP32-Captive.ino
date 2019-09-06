@@ -12,7 +12,7 @@
 
 //************** Auxillary functions******************//
 WebServer server(80);
-StaticJsonBuffer<234> jsonBuffer;
+StaticJsonDocument<234> jsonBuffer;
 
 //**********softAPconfig Timer*************//
 unsigned long APTimer = 0;
@@ -74,17 +74,17 @@ void setup() {
     } 
     file.close();
     if(debugLogData.length()>10){
-       JsonObject& readRoot =jsonBuffer.parseObject(debugLogData);
+       deserializeJson(jsonBuffer, debugLogData);
           Serial.println("=====================================");
           Serial.println(debugLogData);
           Serial.println("=====================================");
-          if(readRoot.containsKey("staticSet")){
+          if(jsonBuffer.containsKey("staticSet")){
              Serial.println("Static IP Started ");
-             staticAPConfig(readRoot["staticIP"],readRoot["staticGate"],readRoot["staticSub"],readRoot["ssidStatic"],readRoot["staticPass"]);
+             staticAPConfig(jsonBuffer["staticIP"],jsonBuffer["staticGate"],jsonBuffer["staticSub"],jsonBuffer["ssidStatic"],jsonBuffer["staticPass"]);
              }
-           else if(readRoot.containsKey("dhcpSet")){
+           else if(jsonBuffer.containsKey("dhcpSet")){
                    Serial.println("DHCP IP Started" );
-                   dhcpAPConfig(readRoot["ssidDHCP"],readRoot["passDHCP"]);
+                   dhcpAPConfig(jsonBuffer["ssidDHCP"],jsonBuffer["passDHCP"]);
                    }
            else{
                handleClientAP();
@@ -294,9 +294,9 @@ void dhcpAPConfig(String ssid, String pass){
 //****************************HANDLE STATIC FORM***************************//
 
 void handleStaticForm() {
-    JsonObject& root =jsonBuffer.createObject();
+    JsonObject root =jsonBuffer.to<JsonObject>();
     root["no"]= "";
-    root.printTo(Serial);  
+    serializeJson(root, Serial);
 if(server.hasArg("ssid") && server.hasArg("passkey")){
        if(server.arg("configure") != ""){
             File fileToWrite = SPIFFS.open("/ip_set.txt", FILE_WRITE);
@@ -304,7 +304,7 @@ if(server.hasArg("ssid") && server.hasArg("passkey")){
               Serial.println("Error opening SPIFFS");
               return;
             }
-           if(root.printTo(fileToWrite)){
+           if (serializeJson(root, fileToWrite)){
                 Serial.println("--File Written");
                 esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
                 esp_deep_sleep_start();  
